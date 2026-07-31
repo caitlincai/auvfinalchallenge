@@ -1,0 +1,131 @@
+launch:
+
+- arg:
+    name: "record"
+    default: "false"
+    description: "Record sensor topics to a rosbag"
+
+- arg:
+    name: "bag_name"
+    default: "IITD_sim"
+    description: "Name of the output bag directory"
+
+# NOTE: sim variant of bluerov.launch.yaml.
+# - arming_client, bluerov2_hardware_interface, and bluerov2_camera_interface
+#   are dropped: the sim doesn't need arming, and `ros2 launch rosmav
+#   simulation.launch.py` (run separately, on the backseat, AFTER Gazebo is
+#   up) already provides the equivalent /rov1/... topics via ros_gz_bridge.
+# - `namespace:` does NOT work here: every node's create_publisher/
+#   create_subscription call uses an absolute ("/topic") name, and ROS 2
+#   namespaces only affect RELATIVE names. So instead we remap each node's
+#   absolute topic directly to its /rov1/... sim equivalent.
+# - Only /camera, /heading, /manual_control, and /pressure actually cross
+#   into the sim; every other topic (/tag_poses, /crosshair_yaw, /box_count,
+#   etc.) is internal to this pipeline and needs no remap.
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "april_tags"
+    name: "control_april_tags"
+    output: "screen"
+    launch-prefix: "bash /home/canon/auvc_ws/src/bluerov2_control/scripts/colorize.sh 33 APRILTAG --"
+    remap:
+      - from: "/camera"
+        to: "/rov1/camera"
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "apriltag_fire"
+    name: "apriltag_fire"
+    output: "screen"
+    launch-prefix: "bash /home/canon/auvc_ws/src/bluerov2_control/scripts/colorize.sh 32 FIRE --"
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "controller_node"
+    name: "controller_node"
+    output: "screen"
+    launch-prefix: "bash /home/canon/auvc_ws/src/bluerov2_control/scripts/colorize.sh 34 CTRL --"
+    remap:
+      - from: "/heading"
+        to: "/rov1/heading"
+      - from: "/manual_control"
+        to: "/rov1/manual_control"
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "crosshair"
+    name: "crosshair_node"
+    output: "screen"
+    launch-prefix: "bash /home/canon/auvc_ws/src/bluerov2_control/scripts/colorize.sh 35 CROSSHAIR --"
+
+    param:
+      - name: kp
+        value: 0.1
+      - name: ki
+        value: 0.0
+      - name: kd
+        value: 0.0
+      - name: max_yaw
+        value: 30.0
+      - name: i_limit
+        value: 20.0
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "detection_node"
+    name: "ROVdetector"
+    output: "screen"
+    launch-prefix: "bash /home/canon/auvc_ws/src/bluerov2_control/scripts/colorize.sh 36 DETECT --"
+    remap:
+      - from: "/camera"
+        to: "/rov1/camera"
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "depth"
+    name: "depth"
+    output: "screen"
+    launch-prefix: "bash /home/canon/auvc_ws/src/bluerov2_control/scripts/colorize.sh 91 DEPTH --"
+    remap:
+      - from: "/pressure"
+        to: "/rov1/pressure"
+
+    param:
+      - name: kp
+        value: 20.0
+      - name: ki
+        value: 1.0
+      - name: kd
+        value: 2.0
+      - name: target_depth
+        value: 1.0
+      - name: integral_cap
+        value: 35.0
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "heading"
+    name: "control_heading"
+    output: "screen"
+    launch-prefix: "bash /home/canon/auvc_ws/src/bluerov2_control/scripts/colorize.sh 94 HEADING --"
+    remap:
+      - from: "/heading"
+        to: "/rov1/heading"
+
+    param:
+      - name: kp
+        value: 0.1
+      - name: ki
+        value: 0.01
+      - name: kd
+        value: 0.0
+      - name: integral_cap
+        value: 35.0
+
+- executable:
+    cmd: "ros2 bag record -s mcap -o $(var bag_name) --topics /depth /manual_control /crosshair_yaw /target_error /target_depth /target_heading /vertical_thrust /rotation_thrust /box_count /tag_poses /heading /fire_events /shots_fired"
+    # name: "rosbag_recorder"
+    # shell: true
+    output: "screen"
+    if: "$(var record)"

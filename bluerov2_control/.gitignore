@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# ROS 2 / colcon build artifacts
+build/
+install/
+log/
+logs/
+__pycache__/
+*.pyc
+*.pt
+eeprom.bin
+bwsibot/
+rov_footage*/
+rosbag2_*/
+*.db3
+*.mcap
+
+# Editor
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
+# Claude 
+.claude/
+CLAUDE.md

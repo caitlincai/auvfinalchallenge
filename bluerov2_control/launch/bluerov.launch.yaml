@@ -1,0 +1,122 @@
+launch:
+
+- arg:
+    name: "record"
+    default: "false"
+    description: "Record sensor topics to a rosbag"
+
+- arg:
+    name: "bag_name"
+    default: "IITD"
+    description: "Name of the output bag directory"
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "arming_client"
+    name: "arming_client"
+    output: "screen"
+    args: "true"   # arm=true, pass "false" to disarm
+
+- node: # hardware interface
+    pkg: "rosmav"
+    exec: "bluerov2_hardware_interface"
+    name: "bluerov2_hardware_interface"
+    output: "screen"
+    namespace: ""
+
+- node: # camera interface
+    pkg: "rosmav"
+    exec: "bluerov2_camera_interface"
+    name: "bluerov2_camera_interface"
+    output: "screen"
+    namespace: ""
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "april_tags"
+    name: "control_april_tags"
+    output: "screen"
+    namespace: ""
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "apriltag_fire"
+    name: "apriltag_fire"
+    output: "screen"
+    namespace: ""
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "controller_node"
+    name: "controller_node"
+    output: "screen"
+    namespace: ""
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "crosshair"
+    name: "crosshair_node"
+    output: "screen"
+    namespace: ""
+
+    param:
+      - name: kp
+        value: 0.1
+      - name: ki
+        value: 0.0
+      - name: kd
+        value: 0.0
+      - name: max_yaw
+        value: 30.0
+      - name: i_limit
+        value: 20.0
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "detection_node"
+    name: "ROVdetector"
+    output: "screen"
+    namespace: ""
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "depth"
+    name: "depth"
+    output: "screen"
+    namespace: ""
+
+    param:
+      - name: kp
+        value: 20.0
+      - name: ki
+        value: 1.0
+      - name: kd
+        value: 2.0
+      - name: target_depth
+        value: 1.0
+      - name: integral_cap
+        value: 35.0
+
+- node:
+    pkg: "bluerov2_control"
+    exec: "heading"
+    name: "control_heading"
+    output: "screen"
+    namespace: ""
+
+    param:
+      - name: kp
+        value: 0.3
+      - name: ki
+        value: 0.05
+      - name: kd
+        value: 0.1
+      - name: integral_cap
+        value: 35.0
+
+- executable:
+    cmd: "ros2 bag record -s mcap -o $(var bag_name) --topics /depth /manual_control /crosshair_yaw /target_error /target_depth /target_heading /vertical_thrust /rotation_thrust /box_count /tag_poses /heading /fire_events /shots_fired"
+    # name: "rosbag_recorder"
+    # shell: true
+    output: "screen"
+    if: "$(var record)"
